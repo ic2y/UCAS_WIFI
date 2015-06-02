@@ -65,7 +65,7 @@ size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata){
     findPosition = strstr(ptr,keyword);
     if(findPosition){
     	int len = atoi(ptr + 16);
-		if(len < minLen){
+		if(len > minLen){
 	        onlineFlag = true;
 	        return 0;			
 		} 
