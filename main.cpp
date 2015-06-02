@@ -14,11 +14,15 @@ CURL *curl;
 char *findPosition;
 bool onlineFlag = false;
 int sleepTime = 10;
-int phoneOffset = 89;
-int passwordOffset = 110;
+int idOffset = 9;
+int idLen = 15;
+int passwordOffset = 34;
+int passwordLen = 16;
 char targetURL[] = "http://www.baidu.com";
-char keyword[] = "200";
-char loginURL[] = "http://202.106.46.37/login.do?callback=jQuery17104011246492154896_1426003928431&username=00000000000&password=000000&passwordType=6&wlanuserip=&userOpenAddress=bj&checkbox=0&basname=&setUserOnline=&sap=&macAddr=&bandMacAuth=0&isMacAuth=&basPushUrl=http%253A%252F%252F202.106.46.37%252F&passwordkey=&_=1426003931839";
+char keyword[] = "Content-Length";
+int minLen = 10000;//低于10000，说明不是百度的首页 
+char loginURL[] = "http://210.77.16.29/cgi-bin/do_login";
+char postData[] = "username=000000000000000&password=0000000000000000&drop=0&type=1&n=100";
 
 
 
@@ -44,10 +48,12 @@ void log(char *msg){
 
 void autoLogin()
 {
+	log("autologin"); 
     CURL *loginCURL = curl_easy_init();
     if(loginCURL){
         curl_easy_setopt(loginCURL, CURLOPT_READFUNCTION,NULL);
         curl_easy_setopt(loginCURL,CURLOPT_URL,loginURL);
+        curl_easy_setopt(loginCURL, CURLOPT_POSTFIELDS, postData);
         curl_easy_perform(loginCURL);
         curl_easy_cleanup(loginCURL);
         log("send login done");
@@ -58,20 +64,24 @@ void autoLogin()
 size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata){
     findPosition = strstr(ptr,keyword);
     if(findPosition){
-        onlineFlag = true;
+    	int len = atoi(ptr + 16);
+		if(len < minLen){
+	        onlineFlag = true;
+	        return 0;			
+		} 
     }
-    return 0;
+    return nmemb * size;
 }
 
 
 bool loadConfig(int argc,char *argv[])
 {
     if(argc < 3){
-        log("input argv...like: *.out phone password");
+        log("input argv...like: *.out id password");
         return false;
     }
-    strncpy(loginURL + phoneOffset,argv[1],11);
-    strncpy(loginURL + passwordOffset,argv[2],6);
+    strncpy(postData + idOffset,argv[1],idLen);
+    strncpy(postData + passwordOffset,argv[2],passwordLen);
     if(argc > 3){
         sleepTime = atoi(argv[3]);
     }
@@ -79,7 +89,7 @@ bool loadConfig(int argc,char *argv[])
 }
 
 
-void chinaUnicomIsGood()
+void UCASisGood()
 {
     curl_easy_perform(curl);
 }
@@ -105,13 +115,13 @@ int main(int argc,char *argv[]){
     while(true){
         onlineFlag = false;
         //test ChinaUnicom is good?If disconnect,auto login
-        chinaUnicomIsGood();
-
+        UCASisGood();
         if(!onlineFlag)
         {
+        	log("try log in ");
             autoLogin();
         }else{
-            debug("net ok");
+            log("net ok");
         }
         sleep(sleepTime);
     }
